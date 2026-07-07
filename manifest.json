@@ -1,0 +1,10 @@
+{
+  "name": "Bachelor House Manager",
+  "short_name": "House Mgr",
+  "description": "Manage washing, water, rent and sweeping for your bachelor house",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f5",
+  "theme_color": "#1D9E75",
+  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+}

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bachelor House Manager</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="House Manager">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen" class="loading-screen">
+  <div class="loading-inner">
+    <div class="loading-icon">🏠</div>
+    <div class="loading-title">Bachelor House Manager</div>
+    <div class="loading-bar"><div class="loading-bar-fill" id="loading-bar-fill"></div></div>
+    <div class="loading-status" id="loading-status">Connecting to cloud...</div>
+  </div>
+</div>
+
+<!-- SETUP (admin only - first time) -->
+<div id="setup-screen" class="setup-screen hidden">
+  <div class="setup-card">
+    <div class="setup-icon">🏠</div>
+    <h1>Bachelor House Manager</h1>
+    <p>Admin setup — only Sanjith does this once</p>
+    <div class="setup-field">
+      <label>Your name (Admin)</label>
+      <input type="text" id="setup-your-name" placeholder="Sanjith" maxlength="20">
+    </div>
+    <div class="setup-field">
+      <label>House name</label>
+      <input type="text" id="setup-house-name" placeholder="e.g. Flat 4B" maxlength="50">
+    </div>
+    <div class="setup-field">
+      <label>Monthly rent per person (₹)</label>
+      <input type="number" id="setup-rent" placeholder="5000" min="100">
+    </div>
+    <div class="setup-field">
+      <label>Add all 7 housemates (including yourself)</label>
+      <div class="member-input-row">
+        <input type="text" id="setup-member-input" placeholder="Type name and press Add" maxlength="20">
+        <button onclick="setupAddMember()" class="btn-add">Add</button>
+      </div>
+      <div id="setup-members-list" class="setup-chips"></div>
+      <div id="setup-member-count" class="member-count"></div>
+    </div>
+    <div class="setup-cloud-note">☁️ All data saved to Firebase — syncs to all 7 phones instantly</div>
+    <button onclick="finishSetup()" class="btn-setup-go" id="setup-go-btn" disabled>Create House →</button>
+  </div>
+</div>
+
+<!-- JOIN (housemates pick their name) -->
+<div id="join-screen" class="setup-screen hidden">
+  <div class="setup-card">
+    <div class="setup-icon">👋</div>
+    <h1 id="join-house-title">Join the House</h1>
+    <p>Pick your name to continue</p>
+    <div id="join-members-chips" class="setup-chips" style="margin-top:8px;justify-content:center"></div>
+    <div id="join-status" style="font-size:13px;color:#666;margin:12px 0;text-align:center"></div>
+    <button onclick="joinHouse()" class="btn-setup-go" id="join-go-btn" disabled>Enter House →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" class="hidden">
+
+  <div class="sync-bar" id="sync-bar"><span id="sync-icon">☁️</span><span id="sync-text">Synced</span></div>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="house-emoji">🏠</span>
+      <div>
+        <div class="house-name" id="topbar-house-name">Bachelor House</div>
+        <div class="topbar-date" id="topbar-date"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="admin-badge hidden" id="admin-badge">👑 Admin</span>
+      <button class="icon-btn" onclick="showNotifPanel()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot hidden" id="notif-dot"></span>
+      </button>
+      <button class="icon-btn" onclick="showTab('settings')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="nav-home"     onclick="showTab('home')">🏠 Home</button>
+    <button class="nav-tab"        id="nav-washing"  onclick="showTab('washing')">🧺 Wash</button>
+    <button class="nav-tab"        id="nav-water"    onclick="showTab('water')">💧 Water</button>
+    <button class="nav-tab"        id="nav-rent"     onclick="showTab('rent')">💳 Rent</button>
+    <button class="nav-tab"        id="nav-bill"     onclick="showTab('bill')">⚡ Bill</button>
+    <button class="nav-tab"        id="nav-sweep"    onclick="showTab('sweep')">🧹 Sweep</button>
+    <button class="nav-tab"        id="nav-bathroom" onclick="showTab('bathroom')">🚿 Bath</button>
+  </div>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="tab-pane active" id="pane-home">
+      <div class="today-card">
+        <div class="today-top">
+          <span class="today-label">Today's washing machine</span>
+          <span class="today-badge" id="home-washer-badge">—</span>
+        </div>
+        <div class="today-name" id="home-washer-name">—</div>
+        <div class="today-sub" id="home-washer-sub"></div>
+        <button class="today-notif-btn" onclick="sendWashingNotif()">📲 Send reminder</button>
+      </div>
+      <div class="quick-stats" id="home-quick-stats"></div>
+      <div class="section-header">Quick actions</div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="showTab('washing')"><span class="action-icon">🧺</span><span>Washing</span></button>
+        <button class="action-btn" onclick="showTab('water')"><span class="action-icon">💧</span><span>Water cans</span></button>
+        <button class="action-btn" onclick="showTab('bill')"><span class="action-icon">⚡</span><span>Current bill</span></button>
+        <button class="action-btn" onclick="showTab('sweep')"><span class="action-icon">🧹</span><span>Sweeping</span></button>
+        <button class="action-btn" onclick="showTab('bathroom')"><span class="action-icon">🚿</span><span>Bathroom</span></button>
+        <button class="action-btn" onclick="showTab('rent')"><span class="action-icon">💳</span><span>Rent</span></button>
+      </div>
+      <div class="section-header">Recent activity</div>
+      <div class="activity-list" id="home-activity"><div class="empty-state">No activity yet</div></div>
+    </div>
+
+    <!-- WASHING -->
+    <div class="tab-pane" id="pane-washing">
+      <div class="pane-title">🧺 Washing machine schedule</div>
+      <div class="info-box">📌 One person per day. Reminder sent at <strong>3:00 PM</strong> daily. Next day at <strong>3:00 PM</strong>, previous washer reminded to collect clothes.</div>
+
+      <!-- ADMIN: customize this week -->
+      <div id="wash-admin-section" class="hidden">
+        <div class="admin-section">
+          <div class="admin-section-title">👑 Customize this week's schedule</div>
+          <div id="wash-week-editor"></div>
+          <button class="btn-primary" onclick="saveWashSchedule()">💾 Save this week's schedule</button>
+        </div>
+      </div>
+
+      <div class="week-nav">
+        <button class="week-btn" onclick="changeWeek(-1)">‹ Prev</button>
+        <span class="week-label" id="wash-week-label">This week</span>
+        <button class="week-btn" onclick="changeWeek(1)">Next ›</button>
+      </div>
+      <div id="wash-schedule" class="schedule-list"></div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="sendWashingNotif()">📲 Notify today's person</button>
+        <button class="btn-secondary" onclick="sendCollectNotif()">👕 Remind to collect</button>
+      </div>
+    </div>
+
+    <!-- WATER -->
+    <div class="tab-pane" id="pane-water">
+      <div class="pane-title">💧 Water cans</div>
+      <div class="info-box">💧 Incharge buys cans, logs here → everyone notified instantly to pay their share.</div>
+
+      <div id="water-admin-section" class="hidden">
+        <div class="card">
+          <div class="card-title">Log new water cans</div>
+          <div class="can-row">
+            <div class="can-control">
+              <label>Number of cans</label>
+              <div class="counter-row">
+                <button class="counter-btn" onclick="changeCans(-1)">−</button>
+                <span id="can-count-disp" class="counter-val">2</span>
+                <button class="counter-btn" onclick="changeCans(1)">+</button>
+              </div>
+            </div>
+            <div class="can-amounts">
+              <div class="amount-box"><span class="amount-label">Total</span><span class="amount-val" id="water-total-disp">₹80</span></div>
+              <div class="amount-box"><span class="amount-label">Per person</span><span class="amount-val blue" id="water-share-disp">₹12</span></div>
+            </div>
+          </div>
+          <div class="can-price-note">₹40 per can · split among <span id="water-split-count">7</span> people</div>
+          <button class="btn-primary full-width" onclick="logWaterCans()">💧 Log &amp; notify all housemates</button>
+        </div>
+      </div>
+      <div id="water-member-notice" class="hidden">
+        <div class="info-box">✅ Incharge will log water cans. You can mark your payment below.</div>
+      </div>
+
+      <div class="section-header">History <span id="water-total-owed" style="font-size:12px;font-weight:400;color:#854F0B"></span></div>
+      <div id="water-history-list"><div class="empty-state">No water can entries yet</div></div>
+    </div>
+
+    <!-- RENT -->
+    <div class="tab-pane" id="pane-rent">
+      <div class="pane-title">💳 Rent tracker</div>
+      <div class="month-nav">
+        <button class="week-btn" onclick="changeRentMonth(-1)">‹</button>
+        <span class="week-label" id="rent-month-label">—</span>
+        <button class="week-btn" onclick="changeRentMonth(1)">›</button>
+      </div>
+      <div id="rent-summary" class="rent-summary"></div>
+      <div id="rent-list"></div>
+      <div id="rent-admin-section" class="hidden">
+        <div class="card" style="margin-top:14px">
+          <div class="card-title">Who sent rent to owner?</div>
+          <div class="chip-row" id="rent-sender-chips"></div>
+          <button class="btn-primary full-width" onclick="markRentSent()" style="margin-top:12px">✅ Mark as sent to owner</button>
+          <div id="rent-sent-status" style="font-size:13px;color:#1D9E75;margin-top:8px;text-align:center;font-weight:500"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CURRENT BILL -->
+    <div class="tab-pane" id="pane-bill">
+      <div class="pane-title">⚡ Current (Electricity) Bill</div>
+      <div class="info-box">⚡ Incharge adds the bill → split equally → everyone notified instantly.</div>
+
+      <div id="bill-admin-section" class="hidden">
+        <div class="card">
+          <div class="card-title">Add new electricity bill</div>
+          <div class="setting-row">
+            <label>Bill month</label>
+            <input type="month" id="bill-month-input" class="setting-input">
+          </div>
+          <div class="setting-row">
+            <label>Total bill amount (₹)</label>
+            <input type="number" id="bill-amount-input" class="setting-input" placeholder="e.g. 1400" min="1" oninput="updateBillPreview()">
+          </div>
+          <div id="bill-preview" style="display:none;background:#f0fdf8;border-radius:8px;padding:12px;margin-bottom:12px;font-size:14px;color:#085041">
+            Each person pays: <strong id="bill-per-person">₹0</strong>
+          </div>
+          <button class="btn-primary full-width" onclick="logBill()">⚡ Add bill &amp; notify all housemates</button>
+        </div>
+      </div>
+      <div id="bill-member-notice" class="hidden">
+        <div class="info-box">✅ Incharge will add the bill. Mark your payment below when you pay.</div>
+      </div>
+
+      <div class="section-header">Bill history</div>
+      <div id="bill-history-list"><div class="empty-state">No bill entries yet</div></div>
+    </div>
+
+    <!-- SWEEP -->
+    <div class="tab-pane" id="pane-sweep">
+      <div class="pane-title">🧹 Sweeping schedule</div>
+      <div class="info-box">🧹 One person sweeps every 2 days. Reminder sent at <strong>3:00 PM</strong> the day before.</div>
+
+      <div id="sweep-admin-section" class="hidden">
+        <div class="admin-section">
+          <div class="admin-section-title">👑 Customize this week's sweeping</div>
+          <div id="sweep-week-editor"></div>
+          <button class="btn-primary" onclick="saveSweepSchedule()">💾 Save this week's sweep schedule</button>
+        </div>
+      </div>
+
+      <div id="sweep-schedule-list"></div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn-primary" onclick="sendSweepNotif()">📲 Notify next sweeper</button>
+        <button class="btn-secondary" onclick="markSweepDone()">✅ Mark today done</button>
+      </div>
+    </div>
+
+    <!-- BATHROOM -->
+    <div class="tab-pane" id="pane-bathroom">
+      <div class="pane-title">🚿 Bathroom cleaning</div>
+      <div class="info-box">🚿 One person cleans the bathroom every Sunday. Reminder sent at <strong>3:00 PM Saturday</strong>.</div>
+      <div id="bathroom-schedule-list"></div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn-primary" onclick="sendBathroomNotif()">📲 Notify this Sunday's person</button>
+        <button class="btn-secondary" onclick="markBathroomDone()">✅ Mark this Sunday done</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="tab-pane" id="pane-settings">
+      <div class="pane-title">Settings</div>
+
+      <div class="card" id="cloud-status-card">
+        <div class="card-title">☁️ Cloud status</div>
+        <div id="cloud-status-content"></div>
+      </div>
+
+      <!-- ADMIN ONLY settings -->
+      <div id="settings-admin-only" class="hidden">
+        <div class="card">
+          <div class="card-title">👑 Admin — House info</div>
+          <div class="setting-row"><label>House name</label><input type="text" id="set-house-name" class="setting-input"></div>
+          <div class="setting-row"><label>Monthly rent per person (₹)</label><input type="number" id="set-rent" class="setting-input"></div>
+          <button class="btn-primary" onclick="saveHouseInfo()">Save</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">👑 Admin — Set incharges</div>
+          <div class="setting-row">
+            <label>Water can incharge</label>
+            <select id="set-water-incharge" class="setting-input"></select>
+          </div>
+          <div class="setting-row">
+            <label>Electricity bill incharge</label>
+            <select id="set-bill-incharge" class="setting-input"></select>
+          </div>
+          <button class="btn-primary" onclick="saveIncharges()">Save incharges</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">👑 Admin — Housemates</div>
+          <div id="members-sortable"></div>
+          <div class="member-add-row">
+            <input type="text" id="new-member-name" placeholder="Add new housemate..." maxlength="20">
+            <button class="btn-add" onclick="addMember()">Add</button>
+          </div>
+        </div>
+
+        <button class="btn-danger" onclick="confirmReset()" style="margin-top:4px">🗑 Reset all house data</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔔 Push notifications</div>
+        <div class="notif-status-box">
+          <div style="flex:1">
+            <div id="notif-status-text" style="font-size:14px;font-weight:500">Enable notifications</div>
+            <div style="font-size:12px;color:#666;margin-top:2px">Get reminders as popups &amp; on lock screen</div>
+          </div>
+          <button class="btn-secondary" id="notif-toggle-btn" onclick="toggleNotifications()">Enable</button>
+        </div>
+        <div class="notif-list">
+          <div class="notif-item"><span>🧺</span><div><strong>3:00 PM</strong> — Today's washing machine person</div></div>
+          <div class="notif-item"><span>👕</span><div><strong>3:00 PM</strong> — Previous washer: collect clothes</div></div>
+          <div class="notif-item"><span>🧹</span><div><strong>3:00 PM</strong> — Tomorrow's sweeper reminder</div></div>
+          <div class="notif-item"><span>🚿</span><div><strong>3:00 PM Sat</strong> — Sunday bathroom cleaner</div></div>
+          <div class="notif-item"><span>💧</span><div><strong>Instant</strong> — Water cans added (pay ₹X)</div></div>
+          <div class="notif-item"><span>⚡</span><div><strong>Instant</strong> — New electricity bill (pay ₹X)</div></div>
+          <div class="notif-item"><span>💳</span><div><strong>Instant</strong> — Rent updated</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👤 You are logged in as</div>
+        <div style="font-size:16px;font-weight:600;color:#1D9E75" id="settings-your-name"></div>
+        <div style="font-size:12px;color:#888;margin-top:4px" id="settings-your-role"></div>
+        <button class="btn-secondary" style="margin-top:12px;font-size:13px" onclick="switchUser()">Switch user</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- NOTIF PANEL -->
+<div class="overlay hidden" id="notif-overlay" onclick="hideNotifPanel()"></div>
+<div class="notif-panel hidden" id="notif-panel">
+  <div class="notif-panel-header"><span>🔔 Notifications</span><button onclick="hideNotifPanel()" class="close-btn">✕</button></div>
+  <div id="notif-panel-list"><div class="empty-state" style="padding:24px">No notifications yet</div></div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc,
+           collection, addDoc, query, orderBy, onSnapshot,
+           serverTimestamp, deleteDoc, getDocs }
+                             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  window._fb = {};
+  window.addEventListener('load', async () => {
+    const cfg = window.FIREBASE_CONFIG;
+    const ok  = cfg && cfg.apiKey && !cfg.apiKey.startsWith('PASTE');
+    setLS('Connecting...', 30);
+    if (!ok) { setTimeout(()=>window.startApp(false), 600); return; }
+    try {
+      setLS('Authenticating...', 55);
+      const app  = initializeApp(cfg);
+      const db   = getFirestore(app);
+      const auth = getAuth(app);
+      await signInAnonymously(auth);
+      window._fb = { db, doc, getDoc, setDoc, updateDoc, collection, addDoc,
+                     query, orderBy, onSnapshot, serverTimestamp, deleteDoc, getDocs };
+      setLS('Loading house...', 80);
+      setTimeout(()=>window.startApp(true), 400);
+    } catch(e) {
+      console.error(e);
+      setTimeout(()=>window.startApp(false), 600);
+    }
+  });
+  function setLS(msg,pct){
+    const s=document.getElementById('loading-status'),b=document.getElementById('loading-bar-fill');
+    if(s)s.textContent=msg; if(b)b.style.width=pct+'%';
+  }
+</script>
+<script src="js/firebase-config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
